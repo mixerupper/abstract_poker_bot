@@ -1,4 +1,4 @@
-from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, RESULTS_MAP
+from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, results_map
 import random
 
 class GameStateBase:
@@ -81,10 +81,16 @@ class KuhnPlayerMoveGameState(GameStateBase):
             raise RuntimeError("trying to evaluate non-terminal node")
 
         if self.actions_history[-1] == CHECK and self.actions_history[-2] == CHECK:
-            return RESULTS_MAP[self.cards] * 1 # only ante is won/lost
+            result = results_map(self.cards) * 1
+            print(f"{self.actions_history}: {self.cards} and {result}")
+            return results_map(self.cards) * 1 # only ante is won/lost
 
         if self.actions_history[-2] == BET and self.actions_history[-1] == CALL:
-            return RESULTS_MAP[self.cards] * 2
+            result = results_map(self.cards) * 2
+            print(f"{self.actions_history}: {self.cards} and {result}")
+            return result
 
         if self.actions_history[-2] == BET and self.actions_history[-1] == FOLD:
-            return self.to_move * 1
+            result = self.to_move*1
+            print(f"{self.actions_history}: {self.cards} and {result}")
+            return result*1
