@@ -1,14 +1,14 @@
-from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, RESULTS_MAP
+from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, results_map
 import random
 from games.game_state_base import GameStateBase
 
-class KuhnRootChanceGameState(GameStateBase):
+class AbstractPokerRootChanceGameState(GameStateBase):
 
     def __init__(self, actions, report = False):
         super().__init__(parent = None, to_move = CHANCE, actions = actions)
         self.children = {
-            cards: KuhnPlayerMoveGameState(
-                self, A, [],  cards, [BET, CHECK], report
+            cards: AbstractPokerPlayerMoveGameState(
+                self, A, [],  cards, [BET, CHECK], report = report
             ) for cards in self.actions
         }
         self._chance_prob = 1. / len(self.children)
@@ -25,7 +25,7 @@ class KuhnRootChanceGameState(GameStateBase):
     def sample_one(self):
         return random.choice(list(self.children.values()))
 
-class KuhnPlayerMoveGameState(GameStateBase):
+class AbstractPokerPlayerMoveGameState(GameStateBase):
 
     def __init__(self, parent, to_move, actions_history, cards, actions, report = False):
         super().__init__(parent = parent, to_move = to_move, actions = actions)
@@ -33,7 +33,7 @@ class KuhnPlayerMoveGameState(GameStateBase):
         self.actions_history = actions_history
         self.cards = cards
         self.children = {
-            a : KuhnPlayerMoveGameState(
+            a : AbstractPokerPlayerMoveGameState(
                 self,
                 -to_move,
                 self.actions_history + [a],
@@ -43,7 +43,12 @@ class KuhnPlayerMoveGameState(GameStateBase):
             ) for a in self.actions
         }
 
-        public_card = self.cards[0] if self.to_move == A else self.cards[1]
+        all_cards = self.cards.split('.')
+        if self.to_move == A:
+            public_card = all_cards[0]
+        else:
+            public_card = all_cards[1]
+            
         self._information_set = ".{0}.{1}".format(public_card, ".".join(self.actions_history))
 
         self.report = report
@@ -69,15 +74,15 @@ class KuhnPlayerMoveGameState(GameStateBase):
             raise RuntimeError("trying to evaluate non-terminal node")
 
         if self.actions_history[-1] == CHECK and self.actions_history[-2] == CHECK:
-            result = RESULTS_MAP[self.cards] * 1
+            result = results_map(self.cards) * 1 # only ante is won/lost
 
             if self.report:
                 print(f"{self.actions_history}: {self.cards} and {result}")
 
-            return result # only ante is won/lost
+            return result #only ante is lost
 
         if self.actions_history[-2] == BET and self.actions_history[-1] == CALL:
-            result = RESULTS_MAP[self.cards] * 2
+            result = results_map(self.cards) * 2
 
             if self.report:
                 print(f"{self.actions_history}: {self.cards} and {result}")

@@ -3,13 +3,14 @@ from common.utils import init_sigma, init_empty_node_maps
 
 class CounterfactualRegretMinimizationBase:
 
-    def __init__(self, root, chance_sampling = False):
+    def __init__(self, root, chance_sampling = False, report = False):
         self.root = root
         self.sigma = init_sigma(root)
         self.cumulative_regrets = init_empty_node_maps(root)
         self.cumulative_sigma = init_empty_node_maps(root)
         self.nash_equilibrium = init_empty_node_maps(root)
         self.chance_sampling = chance_sampling
+        self.report = report
 
     def _update_sigma(self, i):
         rgrt_sum = sum(filter(lambda x : x > 0, self.cumulative_regrets[i].values()))
@@ -93,8 +94,8 @@ class CounterfactualRegretMinimizationBase:
 
 class VanillaCFR(CounterfactualRegretMinimizationBase):
 
-    def __init__(self, root):
-        super().__init__(root = root, chance_sampling = False)
+    def __init__(self, root, report = False):
+        super().__init__(root = root, chance_sampling = False, report = report)
 
     def run(self, iterations = 1):
         for _ in range(0, iterations):
@@ -116,8 +117,8 @@ class VanillaCFR(CounterfactualRegretMinimizationBase):
 
 class ChanceSamplingCFR(CounterfactualRegretMinimizationBase):
 
-    def __init__(self, root):
-        super().__init__(root = root, chance_sampling = True)
+    def __init__(self, root, report = False):
+        super().__init__(root = root, chance_sampling = True, report = report)
 
     def run(self, iterations = 1):
         for _ in range(0, iterations):
