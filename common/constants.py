@@ -8,6 +8,10 @@ CALL = "CALL"
 FOLD = "FOLD"
 BET = "BET"
 
+INITIAL_ACTIONS = [BET, CHECK]
+
+
+
 
 RESULTS_MAP = {}
 RESULTS_MAP[QK] = -1
@@ -23,14 +27,19 @@ B = -A
 MAX_HAND_VALUE = 3
 MAX_TURNS = 2
 
+ALLOW_SAME_CARD = True
+
 def card_dealing(max_hand_value: int = MAX_HAND_VALUE):
     dealings = []
     for i in range(1, max_hand_value+1):
         for j in range(1, max_hand_value+1):
-            if j==i:
-                continue
-            else:
+            if ALLOW_SAME_CARD:
                 dealings.append(cards(i, j))
+            else:
+                if j==i:
+                    continue
+                else:
+                    dealings.append(cards(i, j))
     return dealings
 
 def cards(a: int, b: int):
@@ -44,6 +53,6 @@ def results_map(cards: str):
     if a < b:
         return -1
     else:
-        raise(Exception("tied result"))
+        # raise(Exception("tied result"))
         return 0
 

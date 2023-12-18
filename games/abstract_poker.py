@@ -1,4 +1,4 @@
-from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, MAX_TURNS, results_map
+from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, MAX_TURNS, INITIAL_ACTIONS, results_map
 import random
 from games.game_state_base import GameStateBase
 
@@ -6,9 +6,10 @@ class AbstractPokerRootChanceGameState(GameStateBase):
 
     def __init__(self, actions, report = False):
         super().__init__(parent = None, to_move = CHANCE, actions = actions)
+
         self.children = {
             cards: AbstractPokerPlayerMoveGameState(
-                self, A, [],  cards, [BET, CHECK], report = report
+                self, A, [],  cards, INITIAL_ACTIONS, report = report
             ) for cards in self.actions
         }
         self._chance_prob = 1. / len(self.children)
@@ -35,13 +36,13 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
         self.turn = turn
         self.children = {
             a : AbstractPokerPlayerMoveGameState(
-                self,
-                -to_move,
-                self.actions_history + [a],
-                cards,
-                self.__get_actions_in_next_round(a),
-                report,
-                self.turn
+                parent = self,
+                to_move = -to_move,
+                actions_history = self.actions_history + [a],
+                cards = cards,
+                actions = self.__get_actions_in_next_round(a),
+                report = report,
+                turn = self.turn
             ) for a in self.actions
         }
 
@@ -50,26 +51,49 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
             public_card = all_cards[0]
         else:
             public_card = all_cards[1]
+
+        _action_history = ".".join(self.actions_history)
             
-        self._information_set = ".{0}.{1}".format(public_card, ".".join(self.actions_history))
+        self._information_set = f".{public_card}.{_action_history}"
 
         self.report = report
 
     def __get_actions_in_next_round(self, a):
-        if len(self.actions_history) == 0 and a == BET:
-            return [FOLD, CALL]
-        elif len(self.actions_history) == 0 and a == CHECK:
-            return [BET, CHECK]
-        elif self.actions_history[-1] == CHECK and a == BET:
-            return [CALL, FOLD]
-        elif self.actions_history[-1] == CHECK and a == CHECK:
-            if self.turn < MAX_TURNS:
-                self.turn += 1
+        first_action = (len(self.actions_history) == 0)
+        final_turn = (self.turn == MAX_TURNS)
+
+        if first_action:
+            if a == CHECK:
                 return [BET, CHECK]
+            elif a == BET:
+                return [CALL, FOLD]
             else:
-                return []
-        elif a == CALL or a == FOLD:
+                raise(Exception("Missing game state"))
+        elif a == FOLD:
             return []
+        elif a == BET:
+            return [CALL, FOLD]
+        elif self.actions_history[-1] != CHECK and a == CHECK:
+            return [BET, CHECK]
+        elif self.actions_history[-1] == CHECK and a == CHECK:
+            if final_turn:
+                return []
+            elif self.turn < MAX_TURNS:
+                self.turn += 1
+                return INITIAL_ACTIONS
+            else:
+                raise(Exception("Missing game state"))
+        elif self.actions_history[-1] == BET and a == CALL:
+            if final_turn:
+                return []
+            elif self.turn < MAX_TURNS:
+                self.turn += 1
+                return INITIAL_ACTIONS
+            else:
+                raise(Exception("Missing game state"))
+        else:
+            raise(Exception("Missing game state"))
+
 
     def inf_set(self):
         return self._information_set
@@ -81,28 +105,18 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
         if self.is_terminal() == False:
             raise RuntimeError("trying to evaluate non-terminal node")
 
-        bet_pool = 0
+        # Total pool is equal to number of times a bet was called plus one for the ante
+        bet_pool = sum([1 for i in self.actions_history if i == CALL]) + 1
 
-        # for each turn, get the result and add to the total pool
-
-        if self.actions_history[-1] == CHECK and self.actions_history[-2] == CHECK:
-            result = results_map(self.cards) * 1 # only ante is won/lost
-
-            if self.report:
-                print(f"{self.actions_history}: {self.cards} and {result}")
-
-            return result #only ante is lost
-
-        if self.actions_history[-2] == BET and self.actions_history[-1] == CALL:
-            result = results_map(self.cards) * 2
+        if self.actions_history[-1] == FOLD:
+            result = self.to_move * bet_pool
 
             if self.report:
                 print(f"{self.actions_history}: {self.cards} and {result}")
 
             return result
-
-        if self.actions_history[-2] == BET and self.actions_history[-1] == FOLD:
-            result = self.to_move * 1
+        else:
+            result = results_map(self.cards) * bet_pool
 
             if self.report:
                 print(f"{self.actions_history}: {self.cards} and {result}")
