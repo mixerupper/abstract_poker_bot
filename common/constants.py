@@ -21,6 +21,7 @@ A = 1
 B = -A
 
 MAX_HAND_VALUE = 3
+MAX_TURNS = 2
 
 def card_dealing(max_hand_value: int = MAX_HAND_VALUE):
     dealings = []

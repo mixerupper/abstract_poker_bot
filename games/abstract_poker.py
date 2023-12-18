@@ -1,4 +1,4 @@
-from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, results_map
+from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, MAX_TURNS, results_map
 import random
 from games.game_state_base import GameStateBase
 
@@ -27,11 +27,12 @@ class AbstractPokerRootChanceGameState(GameStateBase):
 
 class AbstractPokerPlayerMoveGameState(GameStateBase):
 
-    def __init__(self, parent, to_move, actions_history, cards, actions, report = False):
+    def __init__(self, parent, to_move, actions_history, cards, actions, report = False, turn = 1):
         super().__init__(parent = parent, to_move = to_move, actions = actions)
 
         self.actions_history = actions_history
         self.cards = cards
+        self.turn = turn
         self.children = {
             a : AbstractPokerPlayerMoveGameState(
                 self,
@@ -39,7 +40,8 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
                 self.actions_history + [a],
                 cards,
                 self.__get_actions_in_next_round(a),
-                report
+                report,
+                self.turn
             ) for a in self.actions
         }
 
@@ -60,7 +62,13 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
             return [BET, CHECK]
         elif self.actions_history[-1] == CHECK and a == BET:
             return [CALL, FOLD]
-        elif a == CALL or a == FOLD or (self.actions_history[-1] == CHECK and a == CHECK):
+        elif self.actions_history[-1] == CHECK and a == CHECK:
+            if self.turn < MAX_TURNS:
+                self.turn += 1
+                return [BET, CHECK]
+            else:
+                return []
+        elif a == CALL or a == FOLD:
             return []
 
     def inf_set(self):
@@ -72,6 +80,10 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
     def evaluation(self):
         if self.is_terminal() == False:
             raise RuntimeError("trying to evaluate non-terminal node")
+
+        bet_pool = 0
+
+        # for each turn, get the result and add to the total pool
 
         if self.actions_history[-1] == CHECK and self.actions_history[-2] == CHECK:
             result = results_map(self.cards) * 1 # only ante is won/lost
