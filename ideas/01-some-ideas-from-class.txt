@@ -1,0 +1,30 @@
+can we find a multiplicative weights implementation to work off of?
+code up heuristic bots
+separate the game from the players hopefully
+
+instead of updating weights each iteration, update every X times with all the data.
+
+go to office hours to discuss idea; 
+follow perturbed leader in cfrm
+
+see if roth is available for office hours--apologize for missing parts of the semester
+
+does no regret depend on the opponent? or does it have to be pre-trained.
+if no regret chooses the "optimal" strategy but might not properly exploit weak opponents if it's pre-trained.
+
+no regret vs reinforcement learning. online just says that no regret is about minimizing any possible losses while reinforcement learning tries to exploit opponent but can be exploited in turn.
+
+
+can we just do follow the perturbed leader for cfrm?
+
+
+robustness checks for sysp
+- sensitive to winsorization
+- above median/below median
+- window of pre-period calculations
+- can you market-adjust the volume change in addition to return change?
+- look into circulating supply instead of on-chain transactions (correlation of 0.81 though. no change in inferences)
+
+can't I just make consumer demand the exact analogue of cash flows? then information about consumer demand is analogous to information about cash flows. facilitator demand is just a function of consumer demand. assume that consumer demand grows at stable state
+
+turn in course project by 22nd (or 21st?)

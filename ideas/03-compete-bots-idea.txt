@@ -1,0 +1,7 @@
+have bots of varying abstraction "fineness" compete against each other
+Bot with kuhn poker like 3. Vs poker with 2. and poker with 10.
+
+Hopefully find that the poker with 10 deciles of hand strength beats 9 beats 8 etc.
+
+Then it just becomes a matter of mapping hands to hand strength deciles and ALSO mapping hand strengths to next-period hand strengths. Like a markov chain of hand strengths/predicted hand strengths.
+

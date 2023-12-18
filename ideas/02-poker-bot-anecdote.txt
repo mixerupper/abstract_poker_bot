@@ -1,0 +1,1 @@
+Reminds me of that 1 Reddit post, where there was a competition of who could Programm the best Poker playing bot. The students spent 4 weeks on code and in the end a guy won, because he just programmed his bot to go all in every turn, which broke every other bot.
