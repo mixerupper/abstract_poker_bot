@@ -1,15 +1,26 @@
-from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, MAX_TURNS, INITIAL_ACTIONS, results_map
+from common.constants import *
 import random
 from games.game_state_base import GameStateBase
 
 class AbstractPokerRootChanceGameState(GameStateBase):
 
-    def __init__(self, actions, report = False):
+    def __init__(self, max_hand_strength, max_turns = 2, report = False):
+        self.max_hand_strength = max_hand_strength
+        self.max_turns = max_turns
+        actions = card_dealing(max_hand_strength)
+
         super().__init__(parent = None, to_move = CHANCE, actions = actions)
 
         self.children = {
             cards: AbstractPokerPlayerMoveGameState(
-                self, A, [],  cards, INITIAL_ACTIONS, report = report
+                parent = self, 
+                to_move = 1, 
+                actions_history = [], 
+                cards = cards, 
+                actions = INITIAL_ACTIONS, 
+                turn = 1,
+                max_turns = self.max_turns,
+                report = report
             ) for cards in self.actions
         }
         self._chance_prob = 1. / len(self.children)
@@ -28,21 +39,27 @@ class AbstractPokerRootChanceGameState(GameStateBase):
 
 class AbstractPokerPlayerMoveGameState(GameStateBase):
 
-    def __init__(self, parent, to_move, actions_history, cards, actions, report = False, turn = 1):
+    def __init__(self, parent, to_move, actions_history, cards, actions, turn, max_turns, report = False):
         super().__init__(parent = parent, to_move = to_move, actions = actions)
 
         self.actions_history = actions_history
         self.cards = cards
         self.turn = turn
+        self.max_turns = max_turns
+        
+
+        next_actions_and_turns = {a:self.__get_actions_and_turn_in_next_round(a) for a in self.actions}
+
         self.children = {
             a : AbstractPokerPlayerMoveGameState(
                 parent = self,
-                to_move = -to_move,
+                to_move = next_actions_and_turns[a]['next_to_move'],
                 actions_history = self.actions_history + [a],
                 cards = cards,
-                actions = self.__get_actions_in_next_round(a),
-                report = report,
-                turn = self.turn
+                actions = next_actions_and_turns[a]['next_actions'],
+                turn = next_actions_and_turns[a]['next_turn'],
+                max_turns = self.max_turns,
+                report = report
             ) for a in self.actions
         }
 
@@ -58,41 +75,46 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
 
         self.report = report
 
-    def __get_actions_in_next_round(self, a):
-        first_action = (len(self.actions_history) == 0)
-        final_turn = (self.turn == MAX_TURNS)
+    def __get_actions_and_turn_in_next_round(self, a):
+        final_turn = (self.turn == self.max_turns)
+        next_turn = self.turn
+        next_to_move = self.to_move * -1
+        assert (self.turn <= self.max_turns)&(self.turn >= 0)
 
-        if first_action:
-            if a == CHECK:
-                return [BET, CHECK]
-            elif a == BET:
-                return [CALL, FOLD]
-            else:
-                raise(Exception("Missing game state"))
-        elif a == FOLD:
-            return []
+        if a == FOLD:
+            next_actions =  []
         elif a == BET:
-            return [CALL, FOLD]
-        elif self.actions_history[-1] != CHECK and a == CHECK:
-            return [BET, CHECK]
-        elif self.actions_history[-1] == CHECK and a == CHECK:
+            next_actions =  [CALL, FOLD]
+        elif a == CHECK_INITIATE:
+            next_actions = [BET, CHECK_RESPONSE]
+        elif a == CALL:
             if final_turn:
-                return []
-            elif self.turn < MAX_TURNS:
-                self.turn += 1
-                return INITIAL_ACTIONS
+                next_actions =  []
             else:
-                raise(Exception("Missing game state"))
-        elif self.actions_history[-1] == BET and a == CALL:
+                next_turn += 1
+                # check that self.turn won't change not pass by references
+                next_actions =  INITIAL_ACTIONS
+
+                # reset next to move back to player 1
+                next_to_move = 1
+        elif a == CHECK_RESPONSE:
             if final_turn:
-                return []
-            elif self.turn < MAX_TURNS:
-                self.turn += 1
-                return INITIAL_ACTIONS
+                next_actions =  []
             else:
-                raise(Exception("Missing game state"))
+                next_turn += 1
+                # check that self.turn won't change not pass by references
+                next_actions =  INITIAL_ACTIONS
+
+                # reset next to move back to player 1
+                next_to_move = 1
         else:
-            raise(Exception("Missing game state"))
+            raise(Exception("Missing action type"))
+
+        result_df = {'next_actions':next_actions, 
+                'next_turn':next_turn, 
+                'next_to_move':next_to_move}
+
+        return result_df
 
 
     def inf_set(self):

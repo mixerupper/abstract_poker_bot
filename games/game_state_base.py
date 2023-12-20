@@ -1,4 +1,4 @@
-from common.constants import CHECK, BET, CALL, FOLD, A, CHANCE, results_map
+from common.constants import CHECK_INITIATE, CHECK_RESPONSE, BET, CALL, FOLD, A, CHANCE, results_map
 import random
 
 
