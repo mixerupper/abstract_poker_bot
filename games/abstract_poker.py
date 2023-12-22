@@ -4,9 +4,10 @@ from games.game_state_base import GameStateBase
 
 class AbstractPokerRootChanceGameState(GameStateBase):
 
-    def __init__(self, max_hand_strength, max_turns = 2, report = False):
+    def __init__(self, max_hand_strength, max_turns = 2, ante = 1, report = False):
         self.max_hand_strength = max_hand_strength
         self.max_turns = max_turns
+        self.ante = ante
         actions = card_dealing(max_hand_strength)
 
         super().__init__(parent = None, to_move = CHANCE, actions = actions)
@@ -20,6 +21,7 @@ class AbstractPokerRootChanceGameState(GameStateBase):
                 actions = INITIAL_ACTIONS, 
                 turn = 1,
                 max_turns = self.max_turns,
+                ante = self.ante,
                 report = report
             ) for cards in self.actions
         }
@@ -39,13 +41,14 @@ class AbstractPokerRootChanceGameState(GameStateBase):
 
 class AbstractPokerPlayerMoveGameState(GameStateBase):
 
-    def __init__(self, parent, to_move, actions_history, cards, actions, turn, max_turns, report = False):
+    def __init__(self, parent, to_move, actions_history, cards, actions, turn, max_turns, ante = 1, report = False):
         super().__init__(parent = parent, to_move = to_move, actions = actions)
 
         self.actions_history = actions_history
         self.cards = cards
         self.turn = turn
         self.max_turns = max_turns
+        self.ante = ante
         
 
         next_actions_and_turns = {a:self.__get_actions_and_turn_in_next_round(a) for a in self.actions}
@@ -59,6 +62,7 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
                 actions = next_actions_and_turns[a]['next_actions'],
                 turn = next_actions_and_turns[a]['next_turn'],
                 max_turns = self.max_turns,
+                ante = self.ante,
                 report = report
             ) for a in self.actions
         }
@@ -128,7 +132,7 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
             raise RuntimeError("trying to evaluate non-terminal node")
 
         # Total pool is equal to number of times a bet was called plus one for the ante
-        bet_pool = sum([1 for i in self.actions_history if i == CALL]) + 1
+        bet_pool = sum([1 for i in self.actions_history if i == CALL]) + self.ante
 
         if self.actions_history[-1] == FOLD:
             result = self.to_move * bet_pool
