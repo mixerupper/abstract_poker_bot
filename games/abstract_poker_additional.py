@@ -87,12 +87,18 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
 
         if a == FOLD:
             next_actions =  []
+        elif a == CALL_ALL_IN:
+            next_actions =  []
         elif a == BET:
-            next_actions =  [CALL, FOLD, RAISE]
+            next_actions =  [CALL, FOLD, RAISE, RAISE_ALL_IN]
         elif a == RAISE:
-            next_actions =  [CALL, FOLD]
+            next_actions =  [CALL, FOLD, RAISE_ALL_IN]
+        elif a == BET_ALL_IN:
+            next_actions =  [CALL_ALL_IN, FOLD]
+        elif a == RAISE_ALL_IN:
+            next_actions =  [CALL_ALL_IN, FOLD]
         elif a == CHECK_INITIATE:
-            next_actions = [BET, CHECK_RESPONSE]
+            next_actions = [BET, CHECK_RESPONSE, BET_ALL_IN]
         elif a == CALL:
             if final_turn:
                 next_actions =  []
@@ -133,9 +139,17 @@ class AbstractPokerPlayerMoveGameState(GameStateBase):
         if self.is_terminal() == False:
             raise RuntimeError("trying to evaluate non-terminal node")
 
+        
         # Total pool is equal to number of times a bet was called plus one for the ante
-        bet_pool = sum([1 for i in self.actions_history if i in [CALL, RAISE]]) + self.ante
+        num_actions = len(self.actions_history)
+        bet_pool = self.ante
 
+        if self.actions_history[-1] == CALL_ALL_IN:
+            bet_pool = 50
+        else:
+            bet_pool += sum([1 for a in self.actions_history if a in [RAISE, CALL, RAISE_ALL_IN]])
+
+        # Evaluate winner
         if self.actions_history[-1] == FOLD:
             result = self.to_move * bet_pool
 
